@@ -170,6 +170,10 @@ embedded_musicui_gz = None
 preloaded_custom_jinja = ""
 voicebank = {}
 voicelist = ["kobo","cheery","sleepy","shouty","chatty"]
+qwen3tts_custom_voices = [
+    "aiden", "serena", "ono_anna", "ryan", "sohee",
+    "eric", "dylan", "vivian", "uncle_fu",
+]
 sslvalid = False
 nocertify = False
 start_time = time.time()
@@ -3003,9 +3007,21 @@ def tts_generate(genparams):
     oai_voicemap = ["alloy","onyx","echo","nova","shimmer"] # map to kcpp defaults
     voice_mapping = voicelist
     normalized_voice = voicestr.strip().lower() if voicestr else ""
+    # Preserve the five historical KoboldCpp labels while mapping every
+    # official Qwen3-TTS CustomVoice name to its fixed speaker seed.
+    voice_aliases = {
+        "kobo": "aiden",
+        "cheery": "serena",
+        "sleepy": "ono_anna",
+        "shouty": "ryan",
+        "chatty": "sohee",
+    }
+    normalized_voice = voice_aliases.get(normalized_voice, normalized_voice)
     if normalized_voice.endswith(".wav"):
         normalized_voice = normalized_voice[:-4]
-    if normalized_voice in voice_mapping:
+    if normalized_voice in qwen3tts_custom_voices:
+        voice = qwen3tts_custom_voices.index(normalized_voice) + 1
+    elif normalized_voice in voice_mapping:
         voice = voice_mapping.index(normalized_voice) + 1
     elif normalized_voice in oai_voicemap:
         voice = oai_voicemap.index(normalized_voice) + 1
@@ -11961,6 +11977,14 @@ def kcpp_main_process(launch_args, g_memory=None, gui_launcher=False):
             except Exception:
                 print("Could not find Embedded Qwen3TTS voices.")
 
+            # Advertise the official fixed CustomVoice speakers alongside the
+            # legacy embedded reference voices. tts_generate resolves these
+            # through qwen3tts_custom_voices so their positions here do not
+            # affect the C++ speaker-token mapping.
+            voicelist.extend(
+                voice for voice in qwen3tts_custom_voices
+                if voice not in voicelist
+            )
             voicelist.append("random")
             voicebank["random"] = ""
             voicelist.append("instruct")

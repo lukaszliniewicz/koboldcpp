@@ -1181,9 +1181,14 @@ static tts_generation_outputs ttstype_generate_qwen3tts(const tts_generation_inp
         std::string speaker_instruction = inputs.speaker_instruction;
 
         int speakerID = inputs.speaker_seed;
-        int speakermap[] = {2861,3066,2873,3061,2864,2875,2878,3065,3010};
+        // Qwen3-TTS CustomVoice speaker tokens, in the same order as
+        // qwen3tts_custom_voices in koboldcpp.py. Keep all nine official
+        // speakers addressable; the previous five-speaker limit made the
+        // remaining names fall back to speakerID -1.
+        const int speakermap[] = {2861,3066,2873,3061,2864,2875,2878,3065,3010};
+        constexpr int speaker_count = sizeof(speakermap) / sizeof(speakermap[0]);
 
-        if (speakerID > 0 && speakerID <= 5) {
+        if (speakerID > 0 && speakerID <= speaker_count) {
             speakerID = speakermap[speakerID-1];
         } else {
             speakerID = -1;
